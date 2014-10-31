@@ -22,7 +22,7 @@
 
 // LED Pins.  
 #define redled = 3;       
-#define greenled = 6;
+#define greenled = 6;cd 
 #define whiteled1 = 7;
 #define whiteled2 = 8;
 

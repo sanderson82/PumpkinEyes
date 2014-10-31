@@ -1,5 +1,5 @@
 /**
- * A simple arduino app that uses 2 servos, 6 leds(red/white/green), and an HC04 to 
+ * A simple arduino app that uses 2 servos, 6 leds(red/white/green) for the eyes, 1 led to light the teeth, and an HC04 to 
  * control a set of eys mounted into a pumpkin.
  *
  * The pumpkin uses 2 plastic hollow eyes and 3 leds mounted inside of each of them.
@@ -11,24 +11,31 @@
  *
  * The eyes also adjust their color as the object approaches.  The eyes change from 
  * white, to green to red and also adjust brightness based on distance.
- * 
  *
+ * The led in the teeth remain on constantly
  */
 #include <Servo.h>
 
 // HC04 Pins 
 #define trigPin 13
 #define echoPin 12
-
+  
 // LED Pins.  
-#define redled = 3;       
-#define greenled = 6;cd 
-#define whiteled1 = 7;
-#define whiteled2 = 8;
+#define redled 3       
+#define greenled1 6
+#define greenled2 11
+#define whiteled1 7
+#define whiteled2 8
+
+// Teeth LED
+#define teethled 2
 
 // Servo control pins
-#define leftServoPin = 9;
-#define rightServoPin = 10;
+#define leftServoPin 9
+#define rightServoPin 10
+
+// The delay between reading sensors, updating LED and servos
+#define delayPeriod 400
 
 Servo leftServo;
 Servo rightServo;
@@ -37,31 +44,38 @@ Servo rightServo;
 int lastServoPos = 90;
 
 // Defines the servo movement amount
-int movementAmount = 15;
+int movementDirection = 1;
 
 void setup() {
+
   Serial.begin (9600);
+
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(whiteled1, OUTPUT);
   pinMode(whiteled2, OUTPUT);
-  pinMode(greenled, OUTPUT);
+  pinMode(greenled1, OUTPUT);
+  pinMode(greenled2, OUTPUT);
   pinMode(redled, OUTPUT);
-  
+
+  pinMode(teethled, OUTPUT);
+
   leftServo.attach(leftServoPin);
   rightServo.attach(rightServoPin);
   
   leftServo.write(lastServoPos);
   rightServo.write(lastServoPos);
+  
+  digitalWrite(teethled, HIGH);  
 }
 
 void loop() {
-  distance = getDistance();
+  long distance = getDistance();
   Serial.print(distance);
   Serial.println(" cm");
   updateLED(distance);
   updateServo(distance);
-  delay(200);
+  delay(delayPeriod);
 }
 
 /**
@@ -98,22 +112,25 @@ void updateLED(long distance)
   switch(val)
   {
     case 0:
-    analogWrite(redled, brightness); 
-    digitalWrite(whiteled1, LOW); 
-    digitalWrite(whiteled2, LOW); 
-    analogWrite(greenled, 0); 
-    break;
+      analogWrite(redled, brightness); 
+      digitalWrite(whiteled1, LOW); 
+      digitalWrite(whiteled2, LOW); 
+      analogWrite(greenled1, 0); 
+      analogWrite(greenled2, 0); 
+      break;
     case 1:
-    analogWrite(greenled, brightness); 
-    digitalWrite(whiteled1, LOW); 
-    digitalWrite(whiteled2, LOW); 
-    analogWrite(redled, 0); 
-    break;
+      digitalWrite(greenled1, HIGH); 
+      digitalWrite(greenled2, HIGH); 
+      digitalWrite(whiteled1, LOW); 
+      digitalWrite(whiteled2, LOW); 
+      analogWrite(redled, 0); 
+      break;
     default:
-    digitalWrite(whiteled1, HIGH); 
-    digitalWrite(whiteled2, HIGH); 
-    analogWrite(greenled, 0); 
-    analogWrite(redled, 0); 
+      digitalWrite(whiteled1, HIGH); 
+      digitalWrite(whiteled2, HIGH); 
+      analogWrite(greenled1, 0); 
+      analogWrite(greenled2, 0); 
+      analogWrite(redled, 0); 
     break;
   }
 }
@@ -131,24 +148,38 @@ void updateLED(long distance)
  */
 void updateServo(long distance)
 {
+
   int val = distance/100;
-  lastServoPos = lastServoPos + movementAmount;
+  lastServoPos = lastServoPos + movementDirection;
+
   switch(val)
   {
      case 0:
        lastServoPos = 90;
        break;
      case 1:
-       if(lastServoPos<75 || lastServoPos>105)
-         movementAmount = movementAmount*-1;
+       if(movementDirection==-1)
+         lastServoPos=75;
+       else
+         lastServoPos=105;
+
+       movementDirection = movementDirection*-1;
        break;
      case 2: 
-       if(lastServoPos<60 || lastServoPos>120)
-         movementAmount = movementAmount*-1;
+       if(movementDirection==-1)
+         lastServoPos=60;
+       else
+         lastServoPos=110;
+
+       movementDirection = movementDirection*-1;
        break;
      default:
-       if(lastServoPos<45 || lastServoPos>135)
-         movementAmount = movementAmount*-1;
+       if(movementDirection==-1)
+         lastServoPos=45;
+       else
+         lastServoPos=135;
+
+       movementDirection = movementDirection*-1;
        break;
 
   }
